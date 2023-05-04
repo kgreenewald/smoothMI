@@ -1,0 +1,16 @@
+ID                 = 1;
+epochs             = 10000;
+vpath              = "";
+pj_scriptdir       = vpath @ "logs/sdir" @ ID @ "/";
+pj_logdir          = vpath @ "logs/ldir" @ ID @ "/";
+pj_mem_default     = "50g";
+pj_cores_default   = "5+1";
+pj_queue           = "x86_6h";
+
+declare build_tishby;
+
+define build_tishby;
+%begin
+source activate py36
+python tishby.py --ID %ID --max_epochs %epochs --sigma_z 0.005 --num_data_X 4096
+%end

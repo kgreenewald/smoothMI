@@ -1,0 +1,57 @@
+task               = "tanh";
+estID              = 1;
+modelID            = 1;
+num_epochs         = 84;
+num_parallel       = 100;
+num_replicas       = 1000;
+num_MC_samples     = 1000;
+
+vpath              = "";
+pj_scriptdir       = vpath @ "logs/sdir_" @ task @ "_" @ modelID @ "_" @ estID @ "/";
+pj_logdir          = vpath @ "logs/ldir_" @ task @ "_" @ modelID @ "_" @ estID @ "/";
+pj_mem_default     = "5g";
+pj_cores_default   = "1";
+pj_queue           = "x86_12h";
+
+declare estimate_MI(0:num_epochs-1, 1:num_parallel-1);
+declare estimate_MI_GPU(0:num_epochs-1);
+
+estimate_MI(i, k1): estimate_MI(i-1, k2);
+estimate_MI_GPU(i): estimate_MI_GPU(i-1);
+estimate_MI(i, k): estimate_MI_GPU(i-1);
+estimate_MI_GPU(i): estimate_MI(i-1, k);
+
+define estimate_MI_GPU(i);
+{pj_cores_local = "1+1";}
+%begin
+source activate py36
+python MIestimation.py --modelID %modelID \
+                                  --estID %estID \
+                                  --num_epoch_splits 1 \
+                                  --ind_epoch_split 0 \
+                                  --epoch_i %i \
+                                  --num_data_X 4096 \
+                                  --num_replicas %num_replicas \
+                                  --num_MC_samples %num_MC_samples \
+                                  --epoch_subsampling 0 \
+                                  --load_pre_dump 0 \
+                                  --n_parallel %num_parallel \
+                                  --rank 0
+%end
+
+define estimate_MI(i, k);
+%begin
+source activate py36
+python MIestimation.py --modelID %modelID \
+                                  --estID %estID \
+                                  --num_epoch_splits 1 \
+                                  --ind_epoch_split 0 \
+                                  --epoch_i %i \
+                                  --num_data_X 4096 \
+                                  --num_replicas %num_replicas \
+                                  --num_MC_samples %num_MC_samples \
+                                  --epoch_subsampling 0 \
+                                  --load_pre_dump 0 \
+                                  --n_parallel %num_parallel \
+                                  --rank %k
+%end
